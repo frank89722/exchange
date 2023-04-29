@@ -1,16 +1,17 @@
 package me.frankv.core.config;
 
-import com.fasterxml.jackson.databind.deser.std.StringDeserializer;
-import com.fasterxml.jackson.databind.ser.std.StringSerializer;
 import me.frankv.core.dto.OrderDTO;
 import me.frankv.core.util.ObjectSerializer;
 import me.frankv.core.util.OrderDtoDeserializer;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.kafka.core.*;
 
 import java.util.HashMap;
@@ -48,7 +49,9 @@ public class KafkaConfig {
         admin.setFatalIfBrokerNotAvailable(true);
         return admin;
     }
+
     @Bean
+    @Profile("dev")
     public NewTopic topic() {
         return new NewTopic("topic-order", 1, (short) 1);
     }

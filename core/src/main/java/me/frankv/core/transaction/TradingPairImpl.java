@@ -13,8 +13,8 @@ import java.util.*;
 @RequiredArgsConstructor
 public class TradingPairImpl implements TradingPair {
 
-    private final NavigableMap<BigDecimal, List<Order>> sellOrders;
-    private final NavigableMap<BigDecimal, List<Order>> buyOrders;
+    private final TreeMap<BigDecimal, TreeSet<Order>> sellOrders;
+    private final TreeMap<BigDecimal, TreeSet<Order>> buyOrders;
 
     private final KafkaTemplate<String, OrderDTO> kafkaTemplate;
 
@@ -75,11 +75,10 @@ public class TradingPairImpl implements TradingPair {
         addOrder(order, buyOrders);
     }
 
-    private void addOrder(Order order, NavigableMap<BigDecimal, List<Order>> orders) {
-        List<Order> list = orders.computeIfAbsent(order.getPrice(), k -> new ArrayList<>());
-        list.add(order);
+    private void addOrder(Order order, TreeMap<BigDecimal, TreeSet<Order>> orders) {
+        TreeSet<Order> set = orders.computeIfAbsent(order.getPrice(),
+                k -> new TreeSet<>(Comparator.comparing(Order::getLocalDateTime)));
+        set.add(order);
     }
-
-
 
 }
