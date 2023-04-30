@@ -1,31 +1,37 @@
 package me.frankv.core.entity;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.mongodb.lang.NonNull;
+import lombok.*;
+import org.bson.types.ObjectId;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
-//@Entity
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
 @Builder
+@CompoundIndex(name = "id_price", def = "{ 'id': -1, 'price': -1 }")
 public class Order {
 
-//    @Id
-    private String id;
+    @Id
+    private ObjectId id;
 
+    @NonNull
     private BigDecimal price;
+    @NonNull
     private BigDecimal amount;
 
+    private ObjectId memberId;
+
+    @NonNull
     private Type type;
 
-    private LocalDateTime localDateTime;
 
+    @ToString(includeFieldNames = false)
+    @RequiredArgsConstructor
     public enum Type {
-        SELL, BUY
+        SELL("sell"), BUY("buy");
+
+        public final String text;
     }
 }

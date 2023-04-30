@@ -1,11 +1,11 @@
 package me.frankv.core.config;
 
-import me.frankv.core.dto.OrderDTO;
+import me.frankv.core.repository.OrderRepository;
 import me.frankv.core.transaction.TradingPair;
 import me.frankv.core.transaction.TradingPairImpl;
+import me.frankv.core.transaction.TradingPairProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.kafka.core.KafkaTemplate;
 
 import java.util.TreeMap;
 
@@ -13,7 +13,8 @@ import java.util.TreeMap;
 public class TradingPairConfig {
 
     @Bean
-    public TradingPair testTradingPair(KafkaTemplate<String, OrderDTO> kafkaTemplate) {
-        return new TradingPairImpl(new TreeMap<>(), new TreeMap<>(), kafkaTemplate);
+    public TradingPair testTradingPair(OrderRepository orderRepository) {
+        var testPairProperties = new TradingPairProperties("test");
+        return new TradingPairImpl(testPairProperties, new TreeMap<>(), new TreeMap<>(), orderRepository);
     }
 }

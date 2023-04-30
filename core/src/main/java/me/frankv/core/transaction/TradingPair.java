@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 public interface TradingPair {
 
     void addOrder(Order order);
-    void trade();
 
     BigDecimal getLatestPrice();
+    boolean isReady();
 }
