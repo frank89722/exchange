@@ -4,11 +4,9 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import me.frankv.core.dto.OrderDTO;
 import me.frankv.core.entity.Order;
 import me.frankv.core.repository.OrderRepository;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.stereotype.Service;
+import me.frankv.core.util.OrderUtils;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -16,15 +14,15 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
 public class TradingPairImpl implements TradingPair {
     private final TradingPairProperties properties;
 
-    private final TreeMap<BigDecimal, TreeSet<Order>> sellOrders;
-    private final TreeMap<BigDecimal, TreeSet<Order>> buyOrders;
+    private TreeMap<BigDecimal, TreeSet<Order>> sellOrders;
+    private TreeMap<BigDecimal, TreeSet<Order>> buyOrders;
 
     private final OrderRepository repository;
 
@@ -35,18 +33,29 @@ public class TradingPairImpl implements TradingPair {
     @Getter
     private volatile BigDecimal latestPrice;
 
-    @Getter
     private boolean ready;
 
+
     public synchronized void init() {
-        if (ready) return;
-        //TODO: load order data
+        if (isReady()) return;
+
+        var sells = repository.getAllByType(Order.Type.SELL);
+        var buys = repository.getAllByType(Order.Type.BUY);
+
+        var collector = Collectors.groupingBy(
+                Order::getPrice,
+                TreeMap::new,
+                Collectors.toCollection(OrderUtils.ORDER_TREE_SET_SUPPLIER));
+
+        sellOrders = sells.parallelStream().collect(collector);
+        buyOrders = buys.parallelStream().collect(collector);
 
         ready = true;
     }
+
     @Override
     public void addOrder(@NonNull Order order) throws TradingPairNotReadyException {
-        if (!ready) throw new TradingPairNotReadyException(properties.getName());
+        if (!isReady()) throw new TradingPairNotReadyException(properties.getName());
 
         try {
             writeLock.lock();
@@ -54,6 +63,11 @@ public class TradingPairImpl implements TradingPair {
         } finally {
             writeLock.unlock();
         }
+    }
+
+    @Override
+    public boolean isReady() {
+        return ready && buyOrders != null && sellOrders != null;
     }
 
     private List<Order> getBuyableOrders(Order buyOrder) {
@@ -72,18 +86,18 @@ public class TradingPairImpl implements TradingPair {
 
     private void trade(Order order) {
         if (order.getType() == Order.Type.BUY) {
-            doTrade(getBuyableOrders(order), order, this::addBuyOrder, this::removeSellOrder);
+            trade(getBuyableOrders(order), order, this::addBuyOrder, this::removeSellOrder);
         } else if (order.getType() == Order.Type.SELL) {
-            doTrade(getSellableOrders(order), order, this::addSellOrder, this::removeBuyOrder);
+            trade(getSellableOrders(order), order, this::addSellOrder, this::removeBuyOrder);
         } else {
             log.warn("try to trade a order with no type");
         }
     }
 
-    private void doTrade(List<Order> tradable,
-                         Order order,
-                         Consumer<Order> orderSaver,
-                         Consumer<Order> existedOrderRemover)
+    private void trade(List<Order> tradable,
+                       Order order,
+                       Consumer<Order> orderSaver,
+                       Consumer<Order> existedOrderRemover)
     {
         if (tradable.size() == 0) return;
 
@@ -147,7 +161,7 @@ public class TradingPairImpl implements TradingPair {
 
     private void addOrder(Order order, TreeMap<BigDecimal, TreeSet<Order>> orders) {
         TreeSet<Order> set = orders.computeIfAbsent(order.getPrice(),
-                k -> new TreeSet<>(Comparator.comparing((Order o) -> o.getId().getDate())));
+                k -> OrderUtils.ORDER_TREE_SET_SUPPLIER.get());
         set.add(order);
     }
 

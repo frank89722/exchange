@@ -9,5 +9,5 @@ import java.util.Set;
 
 @Repository
 public interface OrderRepository extends MongoRepository<Order, ObjectId> {
-    Set<Order> getAllByAmountNotEmpty();
+    Set<Order> getAllByType(Order.Type type);
 }

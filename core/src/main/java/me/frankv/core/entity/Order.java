@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 
 @Data
 @Builder
-@CompoundIndex(name = "id_price", def = "{ 'id': -1, 'price': -1 }")
+@CompoundIndex(name = "price_id", def = "{ 'type': 1, 'price': -1, 'id': -1 }")
 public class Order {
 
     @Id
