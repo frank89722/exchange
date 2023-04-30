@@ -6,7 +6,7 @@ plugins {
     id 'org.graalvm.buildtools.native' version '0.9.20'
 }
 
-sourceCompatibility = '17'
+sourceCompatibility = '20'
 
 configurations {
     compileOnly {

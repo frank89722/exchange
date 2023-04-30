@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import me.frankv.core.entity.Order;
 import me.frankv.core.repository.OrderRepository;
 import me.frankv.core.util.OrderUtils;
+import org.bson.types.ObjectId;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -36,6 +37,7 @@ public class TradingPairImpl implements TradingPair {
     private boolean ready;
 
 
+    @Override
     public synchronized void init() {
         if (isReady()) return;
 
@@ -56,13 +58,7 @@ public class TradingPairImpl implements TradingPair {
     @Override
     public void addOrder(@NonNull Order order) throws TradingPairNotReadyException {
         if (!isReady()) throw new TradingPairNotReadyException(properties.getName());
-
-        try {
-            writeLock.lock();
-            trade(order);
-        } finally {
-            writeLock.unlock();
-        }
+        trade(getTradableOrders(order), order, this::writeOrder, this::wipeOrder);
     }
 
     @Override
@@ -70,27 +66,33 @@ public class TradingPairImpl implements TradingPair {
         return ready && buyOrders != null && sellOrders != null;
     }
 
-    private List<Order> getBuyableOrders(Order buyOrder) {
-        return sellOrders.entrySet().stream()
-                .filter(o -> o.getKey().compareTo(buyOrder.getAmount()) < 1)
-                .flatMap(o -> o.getValue().stream())
-                .toList();
+    @Override
+    public void removeOrder(Order order) {
+
     }
 
-    private List<Order> getSellableOrders(Order sellOrder) {
-        return buyOrders.descendingMap().entrySet().stream()
-                .filter(o -> o.getKey().compareTo(sellOrder.getAmount()) > -1)
-                .flatMap(o -> o.getValue().stream())
-                .toList();
+    @Override
+    public void removeOrder(String orderId) {
+
     }
 
-    private void trade(Order order) {
-        if (order.getType() == Order.Type.BUY) {
-            trade(getBuyableOrders(order), order, this::addBuyOrder, this::removeSellOrder);
-        } else if (order.getType() == Order.Type.SELL) {
-            trade(getSellableOrders(order), order, this::addSellOrder, this::removeBuyOrder);
-        } else {
-            log.warn("try to trade a order with no type");
+    @Override
+    public void removeOrder(ObjectId orderId) {
+
+    }
+
+    @Override
+    public void removeOrderByMemberId(String memberId) {
+
+    }
+
+    private List<Order> getTradableOrders(Order order) {
+        synchronized (readLock) {
+            return (order.getType() == Order.Type.SELL ? buyOrders.descendingMap() : sellOrders)
+                    .entrySet().stream()
+                    .filter(o -> o.getKey().compareTo(order.getAmount()) < 1)
+                    .flatMap(o -> o.getValue().stream())
+                    .toList();
         }
     }
 
@@ -105,64 +107,61 @@ public class TradingPairImpl implements TradingPair {
         int tradeCount = 0;
         BigDecimal latest = getLatestPrice();
 
-        while (tradableIndex < tradable.size() && !order.getAmount().equals(BigDecimal.ZERO)) {
-            var existedOrder = tradable.get(tradableIndex);
+        synchronized (writeLock) {
+            while (tradableIndex < tradable.size() && !order.getAmount().equals(BigDecimal.ZERO)) {
+                var existedOrder = tradable.get(tradableIndex);
 
-            if (order.getAmount().compareTo(existedOrder.getAmount()) >= 0) {
-                order.setAmount(order.getAmount().subtract(existedOrder.getAmount()));
-                existedOrderRemover.accept(existedOrder);
-                tradableIndex++;
-            } else {
-                existedOrder.setAmount(existedOrder.getAmount().subtract(order.getAmount()));
-                repository.save(existedOrder);
-                order.setAmount(BigDecimal.ZERO);
+                if (order.getAmount().compareTo(existedOrder.getAmount()) >= 0) {
+                    order.setAmount(order.getAmount().subtract(existedOrder.getAmount()));
+                    existedOrderRemover.accept(existedOrder);
+                    tradableIndex++;
+                } else {
+                    existedOrder.setAmount(existedOrder.getAmount().subtract(order.getAmount()));
+                    repository.save(existedOrder);
+                    order.setAmount(BigDecimal.ZERO);
+                }
+
+                tradeCount++;
+                latest = existedOrder.getPrice();
             }
 
-            tradeCount++;
-            latest = existedOrder.getPrice();
-        }
+            latestPrice = latest;
 
-        latestPrice = latest;
-
-        if (!order.getAmount().equals(BigDecimal.ZERO)) {
-            orderSaver.accept(order);
+            if (!order.getAmount().equals(BigDecimal.ZERO)) {
+                orderSaver.accept(order);
+            }
         }
 
         log.info(String.format("Trade count: %d", tradeCount));
     }
 
-    private void addSellOrder(Order order) {
-        repository.save(order);
-        addOrder(order, sellOrders);
-    }
-
-    private void addBuyOrder(Order order) {
-        repository.save(order);
-        addOrder(order, buyOrders);
-    }
-
-    private void removeSellOrder(Order order) {
-        if (order.getId() == null) {
-            log.warn("trying to remove non-persistence order, skipped.");
-            return;
+    private void writeOrder(Order order) {
+        synchronized (writeLock) {
+            repository.save(order);
+            addOrderToMap(order);
         }
-        repository.deleteById(order.getId());
-        sellOrders.get(order.getPrice()).remove(order);
     }
 
-    private void removeBuyOrder(Order order) {
-        if (order.getId() == null) {
-            log.warn("trying to remove non-persistence order, skipped.");
-            return;
+    private void wipeOrder(Order order) {
+        synchronized (writeLock) {
+            repository.deleteById(order.getId());
+            removeOrderFromMap(order);
         }
-        repository.deleteById(order.getId());
-        buyOrders.get(order.getPrice()).remove(order);
     }
 
-    private void addOrder(Order order, TreeMap<BigDecimal, TreeSet<Order>> orders) {
-        TreeSet<Order> set = orders.computeIfAbsent(order.getPrice(),
-                k -> OrderUtils.ORDER_TREE_SET_SUPPLIER.get());
-        set.add(order);
+    private void removeOrderFromMap(Order order) {
+        synchronized (writeLock) {
+            (order.getType() == Order.Type.SELL ? sellOrders : buyOrders)
+                    .get(order.getPrice()).remove(order);
+        }
+    }
+
+    private void addOrderToMap(Order order) {
+        synchronized (writeLock) {
+            var orders = (order.getType() == Order.Type.SELL ? sellOrders : buyOrders);
+            var set = orders.computeIfAbsent(order.getPrice(), k -> OrderUtils.ORDER_TREE_SET_SUPPLIER.get());
+            set.add(order);
+        }
     }
 
     public TreeMap<BigDecimal, TreeSet<Order>> getSellOrders() {
