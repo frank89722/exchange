@@ -5,6 +5,7 @@ import lombok.*;
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.math.BigDecimal;
 
@@ -21,6 +22,7 @@ public class Order {
     @NonNull
     private BigDecimal amount;
 
+    @Field(name = "member_id")
     private ObjectId memberId;
 
     @NonNull
