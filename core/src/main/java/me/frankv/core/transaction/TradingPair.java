@@ -16,4 +16,6 @@ public interface TradingPair {
 
     BigDecimal getLatestPrice();
     boolean isReady();
+
+    TradingPairProperties getProperties();
 }

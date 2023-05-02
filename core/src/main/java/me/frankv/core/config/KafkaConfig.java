@@ -1,8 +1,8 @@
 package me.frankv.core.config;
 
-import me.frankv.core.dto.OrderDTO;
+import me.frankv.core.dto.OrderRequest;
 import me.frankv.core.util.ObjectSerializer;
-import me.frankv.core.util.OrderDtoDeserializer;
+import me.frankv.core.util.OrderRequestDeserializer;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -12,20 +12,23 @@ import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.kafka.annotation.EnableKafka;
+import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.*;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
+@EnableKafka
 public class KafkaConfig {
     @Bean
-    public KafkaTemplate<String, OrderDTO> kafkaTemplate() {
+    public KafkaTemplate<String, OrderRequest> kafkaTemplate() {
         return new KafkaTemplate<>(producerFactory());
     }
 
     @Bean
-    public ProducerFactory<String, OrderDTO> producerFactory() {
+    public ProducerFactory<String, OrderRequest> producerFactory() {
         Map<String, Object> configProps = new HashMap<>();
         configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
         configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
@@ -34,13 +37,20 @@ public class KafkaConfig {
     }
 
     @Bean
-    public ConsumerFactory<String, OrderDTO> consumerFactory() {
+    public ConsumerFactory<String, OrderRequest> consumerFactory() {
         Map<String, Object> props = new HashMap<>();
-        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, OrderDtoDeserializer.class);
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, "group-id");
-        return new DefaultKafkaConsumerFactory<>(props);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, OrderRequestDeserializer.class);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, "trader");
+        return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), new OrderRequestDeserializer());
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, OrderRequest> kafkaListenerContainerFactory() {
+        var factory = new ConcurrentKafkaListenerContainerFactory<String, OrderRequest>();
+        factory.setConsumerFactory(consumerFactory());
+        return factory;
     }
 
     @Bean

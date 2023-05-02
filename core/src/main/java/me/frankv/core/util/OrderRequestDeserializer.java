@@ -2,22 +2,21 @@ package me.frankv.core.util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import me.frankv.core.dto.OrderDTO;
+import me.frankv.core.dto.OrderRequest;
 import org.apache.kafka.common.serialization.Deserializer;
 
 import java.io.IOException;
 
 @Slf4j
 @NoArgsConstructor
-public class OrderDtoDeserializer implements Deserializer<OrderDTO> {
+public class OrderRequestDeserializer implements Deserializer<OrderRequest> {
 
     @Override
-    public OrderDTO deserialize(String topic, byte[] data) {
+    public OrderRequest deserialize(String topic, byte[] data) {
         var objectMapper = new ObjectMapper();
         try {
-            return objectMapper.readValue(data, OrderDTO.class);
+            return objectMapper.readValue(data, OrderRequest.class);
         } catch (IOException e) {
             log.error(e.getLocalizedMessage());
         }

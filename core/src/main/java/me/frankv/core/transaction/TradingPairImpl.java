@@ -14,12 +14,12 @@ import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
 public class TradingPairImpl implements TradingPair {
+    @Getter
     private final TradingPairProperties properties;
 
     private TreeMap<BigDecimal, TreeSet<Order>> sellOrders;
@@ -47,7 +47,7 @@ public class TradingPairImpl implements TradingPair {
         var collector = Collectors.groupingBy(
                 Order::getPrice,
                 TreeMap::new,
-                Collectors.toCollection(OrderUtils.ORDER_TREE_SET_SUPPLIER));
+                Collectors.toCollection(OrderUtils::getOrderTreeSet));
 
         sellOrders = sells.parallelStream().collect(collector);
         buyOrders = buys.parallelStream().collect(collector);
@@ -58,7 +58,7 @@ public class TradingPairImpl implements TradingPair {
     @Override
     public void addOrder(@NonNull Order order) throws TradingPairNotReadyException {
         if (!isReady()) throw new TradingPairNotReadyException(properties.getName());
-        trade(getTradableOrders(order), order, this::writeOrder, this::wipeOrder);
+        trade(getTradableOrders(order), order);
     }
 
     @Override
@@ -90,18 +90,23 @@ public class TradingPairImpl implements TradingPair {
         synchronized (readLock) {
             return (order.getType() == Order.Type.SELL ? buyOrders.descendingMap() : sellOrders)
                     .entrySet().stream()
-                    .filter(o -> o.getKey().compareTo(order.getAmount()) < 1)
+                    .filter(o -> {
+                        if (order.getType() == Order.Type.BUY) {
+                            return o.getKey().compareTo(order.getPrice()) < 1;
+                        } else {
+                            return o.getKey().compareTo(order.getPrice()) > -1;
+                        }
+                    })
                     .flatMap(o -> o.getValue().stream())
                     .toList();
         }
     }
 
-    private void trade(List<Order> tradable,
-                       Order order,
-                       Consumer<Order> orderSaver,
-                       Consumer<Order> existedOrderRemover)
-    {
-        if (tradable.size() == 0) return;
+    private void trade(List<Order> tradable, Order order) {
+        if (tradable.size() == 0) {
+            writeOrder(order);
+            return;
+        }
 
         int tradableIndex = 0;
         int tradeCount = 0;
@@ -113,7 +118,8 @@ public class TradingPairImpl implements TradingPair {
 
                 if (order.getAmount().compareTo(existedOrder.getAmount()) >= 0) {
                     order.setAmount(order.getAmount().subtract(existedOrder.getAmount()));
-                    existedOrderRemover.accept(existedOrder);
+                    existedOrder.setAmount(BigDecimal.ZERO);
+                    wipeOrder(existedOrder);
                     tradableIndex++;
                 } else {
                     existedOrder.setAmount(existedOrder.getAmount().subtract(order.getAmount()));
@@ -128,7 +134,7 @@ public class TradingPairImpl implements TradingPair {
             latestPrice = latest;
 
             if (!order.getAmount().equals(BigDecimal.ZERO)) {
-                orderSaver.accept(order);
+                writeOrder(order);
             }
         }
 
@@ -159,7 +165,7 @@ public class TradingPairImpl implements TradingPair {
     private void addOrderToMap(Order order) {
         synchronized (writeLock) {
             var orders = (order.getType() == Order.Type.SELL ? sellOrders : buyOrders);
-            var set = orders.computeIfAbsent(order.getPrice(), k -> OrderUtils.ORDER_TREE_SET_SUPPLIER.get());
+            var set = orders.computeIfAbsent(order.getPrice(), k -> OrderUtils.getOrderTreeSet());
             set.add(order);
         }
     }
