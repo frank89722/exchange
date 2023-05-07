@@ -23,4 +23,10 @@ public class TestPairController {
         kafkaTemplate.send("topic-order", request);
     }
 
+    @GetMapping("/latest_price")
+    public LatestPriceDto getLatestPrice() {
+        return new LatestPriceDto(coreService.getLatestPrice("test"));
+    }
+
+    private record LatestPriceDto(String latestPrice){}
 }
