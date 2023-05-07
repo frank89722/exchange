@@ -1,5 +1,5 @@
 allprojects {
-    group = 'me.frankv'
+    group = 'me.frankv.exchange'
     version = '0.0.1-SNAPSHOT'
 }
 
