@@ -1,6 +1,6 @@
 package me.frankv.exchange.api.config;
 
-import me.frankv.exchange.common.dto.OrderRequest;
+import me.frankv.exchange.common.dto.OrderDto;
 import me.frankv.exchange.common.util.ObjectSerializer;
 import me.frankv.exchange.common.util.OrderRequestDeserializer;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -23,12 +23,12 @@ import java.util.Map;
 @EnableKafka
 public class KafkaConfig {
     @Bean
-    public KafkaTemplate<String, OrderRequest> kafkaTemplate() {
+    public KafkaTemplate<String, OrderDto> kafkaTemplate() {
         return new KafkaTemplate<>(producerFactory());
     }
 
     @Bean
-    public ProducerFactory<String, OrderRequest> producerFactory() {
+    public ProducerFactory<String, OrderDto> producerFactory() {
         Map<String, Object> configProps = new HashMap<>();
         configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
         configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
@@ -37,7 +37,7 @@ public class KafkaConfig {
     }
 
     @Bean
-    public ConsumerFactory<String, OrderRequest> consumerFactory() {
+    public ConsumerFactory<String, OrderDto> consumerFactory() {
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
@@ -47,8 +47,8 @@ public class KafkaConfig {
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, OrderRequest> kafkaListenerContainerFactory() {
-        var factory = new ConcurrentKafkaListenerContainerFactory<String, OrderRequest>();
+    public ConcurrentKafkaListenerContainerFactory<String, OrderDto> kafkaListenerContainerFactory() {
+        var factory = new ConcurrentKafkaListenerContainerFactory<String, OrderDto>();
         factory.setConsumerFactory(consumerFactory());
         return factory;
     }

@@ -1,7 +1,7 @@
 package me.frankv.exchange.core.kafka;
 
 import lombok.NoArgsConstructor;
-import me.frankv.exchange.common.dto.OrderRequest;
+import me.frankv.exchange.common.dto.OrderDto;
 import me.frankv.exchange.core.entity.OrderEntity;
 import me.frankv.exchange.core.transaction.TradingPair;
 import org.bson.types.ObjectId;
@@ -30,18 +30,18 @@ public class OrderConsumer {
             topics = "topic-order",
             groupId = "trader",
             containerFactory = "kafkaListenerContainerFactory")
-    public void listener(@Payload OrderRequest orderRequest) {
+    public void listener(@Payload OrderDto orderDto) {
         var pair = tradingPairs.get("test");
 
         var order = OrderEntity.builder()
                 .id(new ObjectId())
-                .amount(new BigDecimal(orderRequest.amount()))
-                .price(new BigDecimal(orderRequest.price()))
-                .type(switch (orderRequest.type()) {
+                .amount(new BigDecimal(orderDto.amount()))
+                .price(new BigDecimal(orderDto.price()))
+                .type(switch (orderDto.type()) {
                     case "buy" -> OrderEntity.Type.BUY;
                     case "sell" -> OrderEntity.Type.SELL;
                     default -> throw new IllegalArgumentException(
-                            String.format("type '%s' not found", orderRequest.type()));
+                            String.format("type '%s' not found", orderDto.type()));
                 })
                 .build();
 
