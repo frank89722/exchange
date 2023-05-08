@@ -1,18 +1,26 @@
 package me.frankv.exchange.api.config;
 
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.boot.autoconfigure.http.HttpMessageConverters;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.converter.HttpMessageConverter;
-
-import java.util.stream.Collectors;
 
 @Configuration
 public class ApplicationConfig {
 
-    @Bean
-    public HttpMessageConverters messageConverters(ObjectProvider<HttpMessageConverter<?>> converters) {
-        return new HttpMessageConverters(converters.orderedStream().collect(Collectors.toList()));
-    }
+//    @Bean
+//    public ConfigurableServletWebServerFactory webServerFactory() {
+//        var factory = new JettyServletWebServerFactory();
+//        var customizer = (JettyServerCustomizer) server -> {
+//            for (Connector connector : server.getConnectors()) {
+//                if (connector instanceof ServerConnector serverConnector) {
+//                    var serverConnectorFactory = new HTTP3ServerConnectionFactory(new HttpConfiguration());
+//                    serverConnector.addConnectionFactory(serverConnectorFactory);
+//                }
+//            }
+//        };
+//
+//        factory.addServerCustomizers(customizer);
+//        factory.setThreadPool(new ExecutorThreadPool());
+//        return factory;
+//    }
+
+
 }
