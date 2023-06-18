@@ -2,6 +2,7 @@ package me.frankv.exchange.core.kafka;
 
 import lombok.NoArgsConstructor;
 import me.frankv.exchange.common.dto.OrderDto;
+import me.frankv.exchange.common.model.Order;
 import me.frankv.exchange.core.entity.OrderEntity;
 import me.frankv.exchange.core.transaction.TradingPair;
 import org.bson.types.ObjectId;
@@ -37,9 +38,9 @@ public class OrderConsumer {
                 .id(new ObjectId())
                 .amount(new BigDecimal(orderDto.amount()))
                 .price(new BigDecimal(orderDto.price()))
-                .type(switch (orderDto.type()) {
-                    case "buy" -> OrderEntity.Type.BUY;
-                    case "sell" -> OrderEntity.Type.SELL;
+                .direction(switch (orderDto.type()) {
+                    case "buy" -> Order.Direction.BUY;
+                    case "sell" -> Order.Direction.SELL;
                     default -> throw new IllegalArgumentException(
                             String.format("type '%s' not found", orderDto.type()));
                 })

@@ -15,14 +15,15 @@ import java.math.BigDecimal;
 @Data
 @Builder
 @Document("order")
-@CompoundIndex(name = "price_id", def = "{ 'type': 1, 'price': -1, 'id': -1 }")
+@CompoundIndex(
+        name = "price_id",
+        def = "{ 'direction': 1, 'price': -1, 'id': -1 }"
+)
 public class OrderEntity implements Order {
 
     @Id
     private ObjectId id;
 
-
-    @NonNull
     private BigDecimal price;
     @NonNull
     private BigDecimal amount;
@@ -31,7 +32,6 @@ public class OrderEntity implements Order {
     private ObjectId memberId;
 
     @NonNull
-    private Type type;
-
+    private Direction direction;
 
 }

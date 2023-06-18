@@ -1,62 +1,72 @@
 package me.frankv.exchange.core.transaction.trader;
 
-import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
+import me.frankv.exchange.common.model.Order;
 import me.frankv.exchange.core.entity.OrderEntity;
+import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 @Slf4j
-@Builder
-public class LimitTrader implements Trader {
-
-    private final Consumer<OrderEntity> orderWriter;
-    private final Consumer<OrderEntity> orderWiper;
-    private final Consumer<OrderEntity> orderUpdater;
-    private final Supplier<BigDecimal> lastestPriceSupplier;
-    private TreeMap<BigDecimal, TreeSet<OrderEntity>> sellOrders;
-    private TreeMap<BigDecimal, TreeSet<OrderEntity>> buyOrders;
+@Service
+public class LimitTrader extends AbstractTrader {
 
     @Override
-    public BigDecimal trade(List<OrderEntity> tradables, OrderEntity orderEntity) {
-        if (tradables.size() == 0) {
-            orderWriter.accept(orderEntity);
-            return lastestPriceSupplier.get();
+    public BigDecimal trade(Order order) {
+        var tradable = getTradableOrders(order);
+        if (tradable.size() == 0) {
+            writeOrder(order);
+            return tradingPair.getLatestPrice();
         }
 
         int tradableIndex = 0;
         int tradeCount = 0;
-        BigDecimal latest = lastestPriceSupplier.get();
+        var latest = tradingPair.getLatestPrice();
 
-        while (tradableIndex < tradables.size() && !orderEntity.getAmount().equals(BigDecimal.ZERO)) {
-            var existedOrder = tradables.get(tradableIndex);
+        while (tradableIndex < tradable.size() && !order.getAmount().equals(BigDecimal.ZERO)) {
+            var existedOrder = tradable.get(tradableIndex);
 
-            if (orderEntity.getAmount().compareTo(existedOrder.getAmount()) >= 0) {
-                orderEntity.setAmount(orderEntity.getAmount().subtract(existedOrder.getAmount()));
+            if (order.getAmount().compareTo(existedOrder.getAmount()) >= 0) {
+                order.setAmount(order.getAmount().subtract(existedOrder.getAmount()));
                 existedOrder.setAmount(BigDecimal.ZERO);
-                orderWiper.accept(existedOrder);
+                wipeOrder(existedOrder);
                 tradableIndex++;
             } else {
-                existedOrder.setAmount(existedOrder.getAmount().subtract(orderEntity.getAmount()));
-                orderUpdater.accept(existedOrder);
-                orderEntity.setAmount(BigDecimal.ZERO);
+                existedOrder.setAmount(existedOrder.getAmount().subtract(order.getAmount()));
+                repository.save((OrderEntity) existedOrder);
+                order.setAmount(BigDecimal.ZERO);
             }
 
             tradeCount++;
             latest = existedOrder.getPrice();
         }
 
-        if (!orderEntity.getAmount().equals(BigDecimal.ZERO)) {
-            orderWriter.accept(orderEntity);
+        if (!order.getAmount().equals(BigDecimal.ZERO)) {
+            writeOrder(order);
         }
 
         log.info(String.format("Trade count: %d", tradeCount));
         return latest;
+    }
+
+    @Override
+    public TraderType getType() {
+        return TraderType.LIMIT;
+    }
+
+    private List<Order> getTradableOrders(Order order) {
+        return (order.getDirection() == Order.Direction.SELL ? buyOrders.descendingMap() : sellOrders)
+                .entrySet().stream()
+                .filter(o -> {
+                    if (order.getDirection() == Order.Direction.BUY) {
+                        return o.getKey().compareTo(order.getPrice()) < 1;
+                    } else {
+                        return o.getKey().compareTo(order.getPrice()) > -1;
+                    }
+                })
+                .flatMap(o -> o.getValue().stream())
+                .toList();
     }
 
 }

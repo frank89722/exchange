@@ -10,5 +10,5 @@ import java.util.Set;
 
 @Repository
 public interface OrderRepository extends MongoRepository<OrderEntity, ObjectId> {
-    Set<OrderEntity> getAllByType(Order.Type type);
+    Set<OrderEntity> getAllByType(Order.Direction direction);
 }

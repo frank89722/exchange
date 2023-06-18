@@ -20,13 +20,13 @@ public interface Order extends Serializable {
     ObjectId getMemberId();
     void setMemberId(ObjectId memberId);
 
-    Type getType();
-    void setType(Type type);
+    Direction getDirection();
+    void setDirection(Direction direction);
 
 
     @ToString(includeFieldNames = false)
     @RequiredArgsConstructor
-    enum Type {
+    enum Direction {
         SELL("sell"), BUY("buy");
 
         public final String text;
