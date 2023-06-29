@@ -5,6 +5,9 @@ import org.bson.types.ObjectId;
 import java.io.Serializable;
 import java.math.BigDecimal;
 
+/**
+ * A transaction is a record of a wallet being deposited or withdrawn.
+ */
 public interface Transaction extends Serializable {
 
     ObjectId getId();
@@ -15,9 +18,9 @@ public interface Transaction extends Serializable {
 
     void setMemberId(ObjectId memberId);
 
-    String getTradingPairName();
+    String getToken();
 
-    void setTradingPairName(String tradingPairName);
+    void setToken(String token);
 
     BigDecimal getAmount();
 

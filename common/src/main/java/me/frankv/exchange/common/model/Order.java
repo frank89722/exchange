@@ -7,6 +7,9 @@ import org.bson.types.ObjectId;
 import java.io.Serializable;
 import java.math.BigDecimal;
 
+/**
+ * An order is a record of a member wanting to buy or sell a token.
+ */
 public interface Order extends Serializable {
     ObjectId getId();
     void setId(ObjectId id);

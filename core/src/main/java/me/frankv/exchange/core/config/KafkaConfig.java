@@ -1,8 +1,9 @@
 package me.frankv.exchange.core.config;
 
 import me.frankv.exchange.common.dto.OrderDto;
+import me.frankv.exchange.common.dto.TransactionDto;
 import me.frankv.exchange.common.util.ObjectSerializer;
-import me.frankv.exchange.common.util.OrderRequestDeserializer;
+import me.frankv.exchange.common.util.OrderDtoDeserializer;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -23,12 +24,12 @@ import java.util.Map;
 @EnableKafka
 public class KafkaConfig {
     @Bean
-    public KafkaTemplate<String, OrderDto> kafkaTemplate() {
+    public KafkaTemplate<String, TransactionDto> kafkaTemplate() {
         return new KafkaTemplate<>(producerFactory());
     }
 
     @Bean
-    public ProducerFactory<String, OrderDto> producerFactory() {
+    public ProducerFactory<String, TransactionDto> producerFactory() {
         Map<String, Object> configProps = new HashMap<>();
         configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
         configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
@@ -41,9 +42,9 @@ public class KafkaConfig {
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, OrderRequestDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, OrderDtoDeserializer.class);
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "trader");
-        return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), new OrderRequestDeserializer());
+        return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), new OrderDtoDeserializer());
     }
 
     @Bean
@@ -63,6 +64,6 @@ public class KafkaConfig {
     @Bean
     @Profile("dev")
     public NewTopic topic() {
-        return new NewTopic("topic-order", 1, (short) 1);
+        return new NewTopic("topic-transaction", 1, (short) 1);
     }
 }

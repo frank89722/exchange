@@ -1,11 +1,14 @@
 package me.frankv.exchange.core.transaction.trader;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import me.frankv.exchange.common.dto.TransactionDto;
 import me.frankv.exchange.common.model.Order;
 import me.frankv.exchange.common.util.OrderUtils;
 import me.frankv.exchange.core.entity.OrderEntity;
 import me.frankv.exchange.core.repository.OrderRepository;
 import me.frankv.exchange.core.transaction.TradingPair;
+import org.springframework.kafka.core.KafkaTemplate;
 
 import java.math.BigDecimal;
 import java.util.TreeMap;

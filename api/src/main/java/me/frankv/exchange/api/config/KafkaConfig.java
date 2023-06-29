@@ -1,8 +1,10 @@
 package me.frankv.exchange.api.config;
 
 import me.frankv.exchange.common.dto.OrderDto;
+import me.frankv.exchange.common.dto.TransactionDto;
 import me.frankv.exchange.common.util.ObjectSerializer;
-import me.frankv.exchange.common.util.OrderRequestDeserializer;
+import me.frankv.exchange.common.util.OrderDtoDeserializer;
+import me.frankv.exchange.common.util.TransactionDtoDeserializer;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -37,18 +39,18 @@ public class KafkaConfig {
     }
 
     @Bean
-    public ConsumerFactory<String, OrderDto> consumerFactory() {
+    public ConsumerFactory<String, TransactionDto> consumerFactory() {
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, OrderRequestDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, OrderDtoDeserializer.class);
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "trader");
-        return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), new OrderRequestDeserializer());
+        return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), new TransactionDtoDeserializer());
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, OrderDto> kafkaListenerContainerFactory() {
-        var factory = new ConcurrentKafkaListenerContainerFactory<String, OrderDto>();
+    public ConcurrentKafkaListenerContainerFactory<String, TransactionDto> kafkaListenerContainerFactory() {
+        var factory = new ConcurrentKafkaListenerContainerFactory<String, TransactionDto>();
         factory.setConsumerFactory(consumerFactory());
         return factory;
     }

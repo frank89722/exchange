@@ -11,7 +11,6 @@ import java.util.Set;
 @Repository
 public interface TransactionRepository extends JpaRepository<TransactionEntity, ObjectId> {
     Set<TransactionEntity> findAllByMemberId(ObjectId memberId);
-    Set<TransactionEntity> findAllByMemberIdAndTradingPairName(ObjectId memberId, String tradingPairName);
     Optional<TransactionEntity> findAllById(ObjectId id);
 
 }

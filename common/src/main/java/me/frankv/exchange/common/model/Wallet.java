@@ -9,8 +9,8 @@ public interface Wallet extends Serializable {
     ObjectId getId();
     void setId(ObjectId id);
 
-    String getTokenName();
-    void setTokenName(String tokenName);
+    String getToken();
+    void setToken(String token);
     BigDecimal getAmount();
     void setAmount(BigDecimal amount);
     ObjectId getMemberId();

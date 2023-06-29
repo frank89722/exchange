@@ -5,11 +5,11 @@ import me.frankv.exchange.core.transaction.trader.Trader;
 import org.bson.types.ObjectId;
 
 import java.math.BigDecimal;
-import java.util.List;
+import java.util.Set;
 
 public interface TradingPair {
 
-    void init(List<Trader> traders);
+    void init(Set<Trader> traders);
     void addOrder(Order order);
     void removeOrder(Order order);
     void removeOrder(String orderId);

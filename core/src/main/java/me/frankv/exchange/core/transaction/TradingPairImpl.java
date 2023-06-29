@@ -41,7 +41,7 @@ public class TradingPairImpl implements TradingPair {
 
 
     @Override
-    public synchronized void init(List<Trader> traders) {
+    public synchronized void init(Set<Trader> traders) {
         if (isReady()) return;
 
         var sells = repository.getAllByType(Order.Direction.SELL);

@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 import me.frankv.exchange.common.model.Transaction;
 import org.bson.types.ObjectId;
 
-import java.io.Serializable;
 import java.math.BigDecimal;
 
 @Data
@@ -18,7 +17,7 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @Table(
         name = "transaction",
-        indexes = @Index(columnList = "trading_pair_name")
+        indexes = @Index(columnList = "token")
 )
 public class TransactionEntity implements Transaction {
 
@@ -26,8 +25,7 @@ public class TransactionEntity implements Transaction {
     private ObjectId id;
     @Column(name = "member_id")
     private ObjectId memberId;
-    @Column(name = "trading_pair_name")
-    private String tradingPairName;
+    private String token;
     private BigDecimal amount;
     private BigDecimal price;
 }
